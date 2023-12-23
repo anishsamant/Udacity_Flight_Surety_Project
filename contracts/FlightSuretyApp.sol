@@ -5,13 +5,12 @@ pragma solidity ^0.8.0;
 // OpenZeppelin's SafeMath library, when used correctly, protects agains such bugs
 // More info: https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/2018/november/smart-contract-insecurity-bad-arithmetic/
 
-import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "./FlightSuretyData.sol";
 
 /************************************************** */
 /* FlightSurety Smart Contract                      */
 /************************************************** */
 contract FlightSuretyApp {
-    using SafeMath for uint256; // Allow SafeMath functions to be called for all uint256 types (similar to "prototype" in Javascript)
 
     /********************************************************************************************/
     /*                                       DATA VARIABLES                                     */
@@ -25,6 +24,9 @@ contract FlightSuretyApp {
     uint8 private constant STATUS_CODE_LATE_TECHNICAL = 40;
     uint8 private constant STATUS_CODE_LATE_OTHER = 50;
 
+    uint8 private constant MULTIPARTY_CONSENSUS_MIN_AIRLINES = 4;
+    uint private constant MIN_FUNDING = 10 ether;
+
     address private contractOwner;          // Account used to deploy contract
 
     struct Flight {
@@ -34,6 +36,11 @@ contract FlightSuretyApp {
         address airline;
     }
     mapping(bytes32 => Flight) private flights;
+
+    FlightSuretyData flightSuretyData;
+
+
+    event RegisteredAirline(address indexed airlineAddress, string name);
 
  
     /********************************************************************************************/
@@ -51,7 +58,7 @@ contract FlightSuretyApp {
     modifier requireIsOperational() 
     {
          // Modify to call data contract's status
-        require(true, "Contract is currently not operational");  
+        require(flightSuretyData.isOperational(), "Contract is currently not operational");  
         _;  // All modifiers require an "_" which indicates where the function body will be added
     }
 
@@ -72,24 +79,17 @@ contract FlightSuretyApp {
     * @dev Contract constructor
     *
     */
-    constructor
-                                (
-                                ) 
-                                 
-    {
+    constructor(address dataAddress) {
         contractOwner = msg.sender;
+        flightSuretyData = FlightSuretyData(payable(dataAddress));
     }
 
     /********************************************************************************************/
     /*                                       UTILITY FUNCTIONS                                  */
     /********************************************************************************************/
 
-    function isOperational() 
-                            public 
-                            pure 
-                            returns(bool) 
-    {
-        return true;  // Modify to call data contract's status
+    function isOperational() public view returns(bool) {
+        return flightSuretyData.isOperational();  // Modify to call data contract's status
     }
 
     /********************************************************************************************/
@@ -101,14 +101,43 @@ contract FlightSuretyApp {
     * @dev Add an airline to the registration queue
     *
     */   
-    function registerAirline
-                            (   
-                            )
-                            external
-                            pure
-                            returns(bool success, uint256 votes)
-    {
-        return (success, 0);
+    function registerAirline(address _airlineAddress,string memory _name) external requireIsOperational {
+        require(_airlineAddress != address(0), "Invalid address");
+        require(!flightSuretyData.isAirlineRegistered(_airlineAddress), "Airline is already registered");
+        uint airlinesCount = flightSuretyData.getAirlinesCount();
+        if (airlinesCount <= MULTIPARTY_CONSENSUS_MIN_AIRLINES) {
+            require(flightSuretyData.isAirlineRegistered(msg.sender), "Only existing airline may register a new airline");
+            require(flightSuretyData.getAirlineFunding(msg.sender) >= MIN_FUNDING, "Minimum funding not met to participate in contract governance");
+            flightSuretyData.registerAirline(_airlineAddress, _name);
+            emit RegisteredAirline(_airlineAddress, _name);
+        } else {
+            if (flightSuretyData.getVotes(_airlineAddress) >= airlinesCount/2) {
+                flightSuretyData.registerAirline(_airlineAddress, _name);
+                emit RegisteredAirline(_airlineAddress, _name);
+            }
+        }
+    }
+
+    function voteAirline(address _airlineAddress) external requireIsOperational {
+        require(flightSuretyData.getAirlineFunding(msg.sender) >= MIN_FUNDING, "Minimum funding not met to participate in contract governance");
+        require(_airlineAddress != address(0), "Invalid address");
+        require(!flightSuretyData.isAirlineRegistered(_airlineAddress), "Airline is already registered");
+        address[] memory voters = flightSuretyData.getAirlineVoters(_airlineAddress);
+        uint len = voters.length;
+        bool voted = false;
+        for (uint i = 0; i < len; i++) {
+            if (voters[i] == msg.sender) {
+                voted = true;
+                break;
+            }
+        }
+        require(!voted, "Caller has already voted for this airline");
+        flightSuretyData.setVotes(_airlineAddress);
+        flightSuretyData.setAirlineVoters(_airlineAddress,msg.sender);
+    }
+
+    function getBalance() public view returns (uint) {
+        return address(this).balance;
     }
 
 

@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
-
 contract FlightSuretyData {
-    using SafeMath for uint256;
 
     /********************************************************************************************/
     /*                                       DATA VARIABLES                                     */
@@ -13,21 +10,40 @@ contract FlightSuretyData {
     address private contractOwner;                                      // Account used to deploy contract
     bool private operational = true;                                    // Blocks all state changes throughout the contract if false
 
+    struct Airline {
+        string name;
+        bool isRegistered;
+        uint funding;
+    }
+
+    mapping(address => Airline) airlines;
+    uint private airlinesCount;
+
+    mapping(address => uint) private votes;
+    mapping(address => address[]) private airlineVoters;
+
+    mapping(address => uint) authorizedCallers;
+    
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
     /********************************************************************************************/
+
+    event AuthorizedContract(address indexed addr);
+    event DeAuthorizedContract(address indexed addr);
 
 
     /**
     * @dev Constructor
     *      The deploying account becomes contractOwner
     */
-    constructor
-                                (
-                                ) 
-                                
-    {
+    constructor(address _airlineAddress) {
         contractOwner = msg.sender;
+        airlines[_airlineAddress] = Airline({
+            name: "Genesis Air",
+            isRegistered: true,
+            funding: 0 
+        });
+        airlinesCount++;
     }
 
     /********************************************************************************************/
@@ -42,8 +58,7 @@ contract FlightSuretyData {
     *      This is used on all state changing functions to pause the contract in 
     *      the event there is an issue that needs to be fixed
     */
-    modifier requireIsOperational() 
-    {
+    modifier requireIsOperational() {
         require(operational, "Contract is currently not operational");
         _;  // All modifiers require an "_" which indicates where the function body will be added
     }
@@ -51,9 +66,13 @@ contract FlightSuretyData {
     /**
     * @dev Modifier that requires the "ContractOwner" account to be the function caller
     */
-    modifier requireContractOwner()
-    {
+    modifier requireContractOwner() {
         require(msg.sender == contractOwner, "Caller is not contract owner");
+        _;
+    }
+
+    modifier requireIsAuthorizedCaller() {
+        require(authorizedCallers[msg.sender] == 1, "Caller is not authorized");
         _;
     }
 
@@ -90,6 +109,16 @@ contract FlightSuretyData {
         operational = mode;
     }
 
+    function authorizeCallers(address _address) external requireContractOwner {
+        authorizedCallers[_address] = 1;
+        emit AuthorizedContract(_address);
+    }
+
+    function deAuthorizeContract(address _address) external requireContractOwner {
+        delete authorizedCallers[_address];
+        emit DeAuthorizedContract(_address);
+    }
+
     /********************************************************************************************/
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
@@ -99,12 +128,13 @@ contract FlightSuretyData {
     *      Can only be called from FlightSuretyApp contract
     *
     */   
-    function registerAirline
-                            (   
-                            )
-                            external
-                            pure
-    {
+    function registerAirline(address _airlineAddress, string memory _name) external requireIsOperational requireIsAuthorizedCaller {
+        airlines[_airlineAddress] = Airline({
+            name: _name,
+            isRegistered: true,
+            funding: 0
+        });
+        airlinesCount++;
     }
 
 
@@ -150,12 +180,9 @@ contract FlightSuretyData {
     *      resulting in insurance payouts, the contract should be self-sustaining
     *
     */   
-    function fund
-                            (   
-                            )
-                            public
-                            payable
-    {
+    function fund() public payable {
+        require(airlines[msg.sender].isRegistered, "Airline is not registered");
+        airlines[msg.sender].funding += msg.value;
     }
 
     function getFlightKey
@@ -175,13 +202,56 @@ contract FlightSuretyData {
     * @dev Fallback function for funding smart contract.
     *
     */
-    receive() 
-                            external 
-                            payable 
-    {
+    receive() external payable {
         fund();
     }
 
+    function isAirlineRegistered(address _airlineAddress) public view returns (bool) {
+        return airlines[_airlineAddress].isRegistered;
+    }
 
+    function getAirlineFunding(address _airlineAddress) public view returns (uint) {
+        return airlines[_airlineAddress].funding;
+    }
+
+    function setAirlineFunding(address _airlineAddress, uint amount) public {
+        airlines[_airlineAddress].funding += amount;
+    }
+
+
+    function getAirlinesCount() public view returns (uint) {
+        return airlinesCount;
+    }
+
+    function getVotes(address _airlineAddress) public view returns (uint) {
+        return votes[_airlineAddress];
+    }
+
+    function setVotes(address _airlineAddress) public {
+        votes[_airlineAddress] += 1;
+    }
+
+    function getAirlineVoters(address _airlineAddress) public view returns (address[] memory) {
+        return airlineVoters[_airlineAddress];
+    }
+
+    function setAirlineVoters(address _airlineAddress,address voter) public {
+        airlineVoters[_airlineAddress].push(voter);
+    }
+    
+    function getBalance() public view returns (uint) {
+        return address(this).balance;
+    }
+
+    function getAirlineName(address _airlineAddress) public view returns (string memory) {
+        return airlines[_airlineAddress].name;
+    }
+
+    function getAirlineInfo(address _airlineAddress) public view returns (string memory name, bool isRegistered, uint funding) {
+        Airline memory airline = airlines[_airlineAddress];
+        name = airline.name;
+        isRegistered = airline.isRegistered;
+        funding = airline.funding;
+    }
 }
 
