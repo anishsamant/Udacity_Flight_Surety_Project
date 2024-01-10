@@ -15,7 +15,34 @@ import './flightsurety.css';
             console.log(error,result);
             display('Operational Status', 'Check if contract is operational', [ { label: 'Operational Status', error: error, value: result} ]);
         });
-    
+
+        DOM.elid('register-airline').addEventListener('click', async() => {
+            let address = DOM.elid('airline-address').value;
+            let name = DOM.elid('airline-name').value;
+
+            contract.registerAirline(address, name, (error, result) => {
+                if(error){
+                    alert(error);
+                    console.log(error);
+                } else if (result.message != null) {
+                    alert(result.message);
+                    // addAirlineOption(name, address);
+                }
+            });
+        })
+
+        DOM.elid('fund').addEventListener('click', async() => {
+            let funds = DOM.elid('funds').value;
+
+            contract.fund(funds, (error, result) => {
+                if(error){
+                    alert(error);
+                    console.log(error);
+                } else if (result.message != null) {
+                    alert(result.message);
+                }
+            });
+        })
 
         // User-submitted transaction
         DOM.elid('submit-oracle').addEventListener('click', () => {

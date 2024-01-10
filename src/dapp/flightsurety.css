@@ -5,12 +5,17 @@ body {
 }
 
 .container {
-    margin-top: 400px;
+    margin-top: 100px;
     background-color: #000;
     opacity: 0.9;
     color: #fff;
     padding: 40px;
 }
+
+hr {
+    color: blue;
+    border-top: 2px solid;
+  }
 
 .top-20 {
     margin-top: 20px;
