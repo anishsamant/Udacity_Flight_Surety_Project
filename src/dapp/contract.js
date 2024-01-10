@@ -117,4 +117,37 @@ export default class Contract {
                 }
             });
     }
+
+    async registerFlight(flight, destination, callback) {
+        let self = this;
+        let payload = {
+            flight: flight,
+            destination: destination,
+            timestamp: Math.floor(Date.now() / 1000),
+            airline: 0x00,
+            airlineName: "",
+            message: null
+        }
+        await this.web3.eth.getAccounts((error, accts) => {
+            payload.airline = accts[0];
+        });
+        self.flightSuretyApp.methods
+            .registerFlight(payload.flight, payload.destination, payload.timestamp)
+            .send({ from: payload.airline, gas: 5000000, gasPrice: 20000000}, (error, result) => {
+                if (error) {
+                    console.log(error);
+                    callback(error, payload);
+                } else {
+                    payload.message = `Flight Registered - FLightNumber: ${payload.flight}, Airline: ${payload.airline}`;
+                    self.flightSuretyData.methods.getAirlineName(payload.airline).call({ from: self.owner }, (error, result) => {
+                        if (!error) {
+                            payload.airlineName = result;
+                        } else {
+                            payload.airlineName = "Unable to fetch";
+                        }
+                        callback(error, payload);
+                    });
+                }
+            });
+    }
 }

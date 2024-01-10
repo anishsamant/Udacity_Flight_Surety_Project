@@ -44,6 +44,22 @@ import './flightsurety.css';
             });
         })
 
+        DOM.elid('register-flight').addEventListener('click', async() => {
+            let flight = DOM.elid('new-flight-number').value;
+            let destination = DOM.elid('new-flight-destination').value;
+            
+            // Write transaction
+            contract.registerFlight(flight, destination, (error, result) => {                
+                if(error){
+                    alert(error);
+                    console.log(error);
+                } else if (result.message != null) {
+                    alert(result.message);
+                    flightDisplay(result.airlineName, flight, destination, result.timestamp);
+                }
+            });
+        })
+
         // User-submitted transaction
         DOM.elid('submit-oracle').addEventListener('click', () => {
             let flight = DOM.elid('flight-number').value;
@@ -71,8 +87,38 @@ function display(title, description, results) {
         section.appendChild(row);
     })
     displayDiv.append(section);
-
 }
+
+let flightCount = 0;
+function flightDisplay(airlineName, flight, destination, time) {
+    var table = DOM.elid("flights-display");
+    table.style.display = 'block';
+
+    flightCount++;
+    var row = table.insertRow(flightCount);
+    row.id = flight;
+    
+    var cell1 = row.insertCell(0);
+    var cell2 = row.insertCell(1);
+    var cell3 = row.insertCell(2);
+    var cell4 = row.insertCell(3);
+    var cell5 = row.insertCell(4);
+    
+    var date = new Date(+time);
+    // Add some text to the new cells:
+    cell1.innerHTML = "<b>" + airlineName.toUpperCase() + "</b>";
+    cell2.innerHTML = "<b>" + flight + "</b>";
+    cell2.setAttribute("data-toggle",  "tooltip");
+    cell2.setAttribute("data-placement",  "top");
+    cell2.title="Click on flight code to copy";
+    cell3.innerHTML = destination.toUpperCase();
+    cell4.innerHTML = date.getHours()+":"+date.getMinutes();
+    cell5.innerHTML = "ON TIME";
+    cell5.style="color:green";
+    $('[data-toggle="tooltip"]').tooltip().mouseover();
+       setTimeout(function(){ $('[data-toggle="tooltip"]').tooltip('hide'); }, 3000);
+}
+
 
 
 

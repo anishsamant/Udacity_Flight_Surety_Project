@@ -34,6 +34,8 @@ contract FlightSuretyApp {
         uint8 statusCode;
         uint256 updatedTimestamp;        
         address airline;
+        string flightNumber;
+        string destination;
     }
     mapping(bytes32 => Flight) private flights;
 
@@ -41,6 +43,7 @@ contract FlightSuretyApp {
 
 
     event RegisteredAirline(address indexed airlineAddress, string name);
+    event FlightRegistered(string flightNumber, address indexed airlineAddress);
 
  
     /********************************************************************************************/
@@ -107,7 +110,7 @@ contract FlightSuretyApp {
         uint airlinesCount = flightSuretyData.getAirlinesCount();
         if (airlinesCount <= MULTIPARTY_CONSENSUS_MIN_AIRLINES) {
             require(flightSuretyData.isAirlineRegistered(msg.sender), "Only existing airline may register a new airline");
-            require(flightSuretyData.getAirlineFunding(msg.sender) >= MIN_FUNDING, "Minimum funding not met to participate in contract governance");
+            require(flightSuretyData.getAirlineFunding(msg.sender) >= MIN_FUNDING, "Airline does not meet minimum funding to register another airline. Contract governance denied!!!");
             flightSuretyData.registerAirline(_airlineAddress, _name);
             emit RegisteredAirline(_airlineAddress, _name);
         } else {
@@ -119,7 +122,7 @@ contract FlightSuretyApp {
     }
 
     function voteAirline(address _airlineAddress) external requireIsOperational {
-        require(flightSuretyData.getAirlineFunding(msg.sender) >= MIN_FUNDING, "Minimum funding not met to participate in contract governance");
+        require(flightSuretyData.getAirlineFunding(msg.sender) >= MIN_FUNDING, "Airline does not meet minimum funding to vote for another airline. Contract governance denied!!!");
         require(_airlineAddress != address(0), "Invalid address");
         require(!flightSuretyData.isAirlineRegistered(_airlineAddress), "Airline is already registered");
         address[] memory voters = flightSuretyData.getAirlineVoters(_airlineAddress);
@@ -145,13 +148,21 @@ contract FlightSuretyApp {
     * @dev Register a future flight for insuring.
     *
     */  
-    function registerFlight
-                                (
-                                )
-                                external
-                                pure
-    {
+    function registerFlight(string memory flightNumber, string memory destination, uint timestamp) external requireIsOperational {
+        bytes32 key = keccak256(abi.encodePacked(flightNumber, msg.sender));
+        require(!flights[key].isRegistered, "Flight is already registered.");
+        require(flightSuretyData.getAirlineFunding(msg.sender) >= MIN_FUNDING, "Airline does not meet minimum funding to register a flight. Contract governance denied!!!");
 
+        flights[key] = Flight({
+            isRegistered: true,
+            statusCode: STATUS_CODE_UNKNOWN,
+            updatedTimestamp: timestamp,
+            airline: msg.sender,
+            flightNumber: flightNumber,
+            destination: destination
+        });
+
+        emit FlightRegistered(flightNumber, msg.sender);
     }
     
    /**
