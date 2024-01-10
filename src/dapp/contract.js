@@ -64,6 +64,32 @@ export default class Contract {
             });
     }
 
+    async fund(funds, callback) {
+        let self = this;
+        let value = this.web3.utils.toWei(funds.toString(), "ether");
+        let payload = {
+            funds: value,
+            funder: 0x00,
+            message: null
+        } 
+        await this.web3.eth.getAccounts((error, accts) => {
+            payload.funder = accts[0];
+        });
+        self.flightSuretyData.methods
+            .fund()
+            .send({ from: payload.funder, value: value}, (error, result) => {
+                if (error) {
+                    console.log(error);
+                    callback(error, payload);
+                } else {
+                    console.log(result);
+                    let eth = this.web3.utils.fromWei(payload.funds, 'ether');
+                    payload.message = `Funding Successful - Funder: ${payload.funder}, Value: ${eth} ETH`;
+                    callback(error, payload);  
+                }
+            });
+    }
+
     async registerAirline(address, name, callback) {
         let self = this;
         let payload = {
@@ -92,32 +118,30 @@ export default class Contract {
             });
     }
 
-    async fund(funds, callback) {
+    async voteAirline(airlineAddress, callback) {
         let self = this;
-        let value = this.web3.utils.toWei(funds.toString(), "ether");
         let payload = {
-            funds: value,
-            funder: 0x00,
+            airlineAddress: airlineAddress,
+            voter: 0x00,
             message: null
         } 
         await this.web3.eth.getAccounts((error, accts) => {
-            payload.funder = accts[0];
+            payload.voter = accts[0];
         });
-        self.flightSuretyData.methods
-            .fund()
-            .send({ from: payload.funder, value: value}, (error, result) => {
+        self.flightSuretyApp.methods
+            .voteAirline(payload.airlineAddress)
+            .send({ from: payload.voter, gas: 5000000, gasPrice: 20000000}, (error, result) => {
                 if (error) {
                     console.log(error);
                     callback(error, payload);
                 } else {
                     console.log(result);
-                    let eth = this.web3.utils.fromWei(payload.funds, 'ether');
-                    payload.message = `Funding Successful - Funder: ${payload.funder}, Value: ${eth} ETH`;
+                    payload.message = `Vote Successful - Voter: ${payload.voter}, Airline Voted: ${airlineAddress}`;
                     callback(error, payload);  
                 }
             });
     }
-
+    
     async registerFlight(flight, destination, callback) {
         let self = this;
         let payload = {

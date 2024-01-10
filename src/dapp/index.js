@@ -16,6 +16,19 @@ import './flightsurety.css';
             display('Operational Status', 'Check if contract is operational', [ { label: 'Operational Status', error: error, value: result} ]);
         });
 
+        DOM.elid('fund').addEventListener('click', async() => {
+            let funds = DOM.elid('funds').value;
+
+            contract.fund(funds, (error, result) => {
+                if(error){
+                    alert(error);
+                    console.log(error);
+                } else if (result.message != null) {
+                    alert(result.message);
+                }
+            });
+        })
+        
         DOM.elid('register-airline').addEventListener('click', async() => {
             let address = DOM.elid('airline-address').value;
             let name = DOM.elid('airline-name').value;
@@ -26,15 +39,14 @@ import './flightsurety.css';
                     console.log(error);
                 } else if (result.message != null) {
                     alert(result.message);
-                    // addAirlineOption(name, address);
                 }
             });
         })
 
-        DOM.elid('fund').addEventListener('click', async() => {
-            let funds = DOM.elid('funds').value;
-
-            contract.fund(funds, (error, result) => {
+        DOM.elid('vote').addEventListener('click', async() => {
+            let airlineAddress = DOM.elid('vote-airline-address').value;
+            // Write transaction
+            contract.voteAirline(airlineAddress, (error, result) => {
                 if(error){
                     alert(error);
                     console.log(error);
@@ -108,15 +120,10 @@ function flightDisplay(airlineName, flight, destination, time) {
     // Add some text to the new cells:
     cell1.innerHTML = "<b>" + airlineName.toUpperCase() + "</b>";
     cell2.innerHTML = "<b>" + flight + "</b>";
-    cell2.setAttribute("data-toggle",  "tooltip");
-    cell2.setAttribute("data-placement",  "top");
-    cell2.title="Click on flight code to copy";
     cell3.innerHTML = destination.toUpperCase();
     cell4.innerHTML = date.getHours()+":"+date.getMinutes();
     cell5.innerHTML = "ON TIME";
     cell5.style="color:green";
-    $('[data-toggle="tooltip"]').tooltip().mouseover();
-       setTimeout(function(){ $('[data-toggle="tooltip"]').tooltip('hide'); }, 3000);
 }
 
 

@@ -40,6 +40,17 @@
         
         <!-- Airline Actions -->
         <h2>Airline actions</h2>
+        <div class="form-group top-20">
+            <label>Fund</label>
+            <div class="input-group mb-2">
+                <div class="input-group-prepend">
+                    <div class="input-group-text">ETH</div>
+                </div>
+                <input type="text" class="form-control" id="funds" placeholder="Minimum funding of 10 ETH required to be operational">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="fund">Fund</button>
+
         <div class="form-row top-20">
             <div class="form-group col-md-6">
             <label>Airline address</label>
@@ -53,15 +64,10 @@
         <button type="submit" class="btn btn-primary" id="register-airline">Register Airline</button>
 
         <div class="form-group top-20">
-            <label>Fund</label>
-            <div class="input-group mb-2">
-                <div class="input-group-prepend">
-                    <div class="input-group-text">ETH</div>
-                </div>
-                <input type="text" class="form-control" id="funds" placeholder="Minimum funding of 10 ETH required to be operational">
-            </div>
+            <label>Airline Address</label>
+            <input type="text" class="form-control" id="vote-airline-address" placeholder="Enter the address of airline to vote">
         </div>
-        <button type="submit" class="btn btn-primary" id="fund">Fund</button>
+        <button type="submit" class="btn btn-primary" id="vote">Vote</button>
 
         <hr>
         
