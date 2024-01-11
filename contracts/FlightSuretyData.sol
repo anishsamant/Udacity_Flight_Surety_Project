@@ -22,6 +22,19 @@ contract FlightSuretyData {
     mapping(address => uint) private votes;
     mapping(address => address[]) private airlineVoters;
 
+    struct Passenger {
+        address passengerAddress;
+        mapping(string => uint) flightNoToInsuranceAmt;
+        uint credit;
+    }
+
+    mapping(bytes32 => Passenger) private passengers;
+    address[] private passengerAddresses;
+
+    mapping(string => bool) flightExists;
+
+    uint public constant INSURANCE_PRICE_LIMIT = 1 ether;
+
     mapping(address => uint) authorizedCallers;
     
     /********************************************************************************************/
@@ -30,6 +43,8 @@ contract FlightSuretyData {
 
     event AuthorizedContract(address indexed addr);
     event DeAuthorizedContract(address indexed addr);
+    event InsuranceBought(address indexed passenger, string flightNumber, uint amount);
+    event CreditWithdrawn(address indexed passenger, string flightNumber, uint amount);
 
 
     /**
@@ -142,24 +157,46 @@ contract FlightSuretyData {
     * @dev Buy insurance for a flight
     *
     */   
-    function buy
-                            (                             
-                            )
-                            external
-                            payable
-    {
+    function buy(string memory flightNumber) external payable requireIsOperational {
+        require(flightExists[flightNumber], "Flight does not exist");
+        require(msg.sender == tx.origin, "Contracts cannot call this function.");
+        require(msg.value > 0, 'Amount needs to be greater than 0');
+        require(msg.value <= 1 ether, "Amount cannot exceed 1 ether");
 
+        bytes32 key = keccak256(abi.encodePacked(flightNumber, msg.sender));
+        require(passengers[key].passengerAddress == address(0), "Passenger has already paid for insurance for this flight");
+        Passenger storage newPassenger = passengers[key];
+        newPassenger.passengerAddress = msg.sender;
+        newPassenger.credit = 0;
+        newPassenger.flightNoToInsuranceAmt[flightNumber] = msg.value;
+
+        passengerAddresses.push(msg.sender);
+
+        emit InsuranceBought(msg.sender, flightNumber, msg.value);
+    }
+
+    function getCreditToPay(string memory flightNumber) external view requireIsOperational returns (uint256) {
+        bytes32 key = keccak256(abi.encodePacked(flightNumber, msg.sender));
+        return passengers[key].credit;
     }
 
     /**
      *  @dev Credits payouts to insurees
     */
-    function creditInsurees
-                                (
-                                )
-                                external
-                                pure
-    {
+    function creditInsurees(string memory flightNumber) external requireIsOperational {
+        uint len = passengerAddresses.length;
+        for (uint i = 0; i < len; i++) {
+            bytes32 key = keccak256(abi.encodePacked(flightNumber, passengerAddresses[i]));
+
+            if (passengers[key].passengerAddress != address(0)) {
+                Passenger storage newPassenger = passengers[key];
+
+                uint currentCredit = newPassenger.credit;
+                uint payedInsurance = newPassenger.flightNoToInsuranceAmt[flightNumber];
+                newPassenger.flightNoToInsuranceAmt[flightNumber] = 0;
+                newPassenger.credit = currentCredit + (payedInsurance + payedInsurance/2);
+            }
+        }
     }
     
 
@@ -167,12 +204,17 @@ contract FlightSuretyData {
      *  @dev Transfers eligible payout funds to insuree
      *
     */
-    function pay
-                            (
-                            )
-                            external
-                            pure
-    {
+    function pay(string memory flightNumber) external requireIsOperational {
+        require(msg.sender == tx.origin, "Contracts cannot call this function.");
+        bytes32 key = keccak256(abi.encodePacked(flightNumber, msg.sender));
+
+        require(passengers[key].credit > 0, "No credit to be withdrawn");
+        uint credit = passengers[key].credit;
+        require(address(this).balance > credit, "The contract does not have enough funds to pay the credit");
+        passengers[key].credit = 0;
+        payable(msg.sender).transfer(credit);
+
+        emit CreditWithdrawn(msg.sender, flightNumber, credit);
     }
 
    /**
@@ -180,7 +222,7 @@ contract FlightSuretyData {
     *      resulting in insurance payouts, the contract should be self-sustaining
     *
     */   
-    function fund() public payable {
+    function fund() public payable requireIsOperational {
         require(airlines[msg.sender].isRegistered, "Airline is not registered");
         airlines[msg.sender].funding += msg.value;
     }
@@ -252,6 +294,10 @@ contract FlightSuretyData {
         name = airline.name;
         isRegistered = airline.isRegistered;
         funding = airline.funding;
+    }
+
+    function setFlightExistsStatus(string memory flightNumber) public {
+        flightExists[flightNumber] = true;
     }
 }
 

@@ -114,10 +114,9 @@ contract FlightSuretyApp {
             flightSuretyData.registerAirline(_airlineAddress, _name);
             emit RegisteredAirline(_airlineAddress, _name);
         } else {
-            if (flightSuretyData.getVotes(_airlineAddress) >= airlinesCount/2) {
-                flightSuretyData.registerAirline(_airlineAddress, _name);
-                emit RegisteredAirline(_airlineAddress, _name);
-            }
+            require(flightSuretyData.getVotes(_airlineAddress) >= airlinesCount/2, "Need more than half votes to be registered.");
+            flightSuretyData.registerAirline(_airlineAddress, _name);
+            emit RegisteredAirline(_airlineAddress, _name);
         }
     }
 
@@ -161,6 +160,7 @@ contract FlightSuretyApp {
             flightNumber: flightNumber,
             destination: destination
         });
+        flightSuretyData.setFlightExistsStatus(flightNumber);
 
         emit FlightRegistered(flightNumber, msg.sender);
     }
@@ -169,16 +169,21 @@ contract FlightSuretyApp {
     * @dev Called after oracle has updated flight status
     *
     */  
-    function processFlightStatus
-                                (
-                                    address airline,
-                                    string memory flight,
-                                    uint256 timestamp,
-                                    uint8 statusCode
-                                )
-                                internal
-                                pure
-    {
+    function processFlightStatus(
+        address airline,
+        string memory flight,
+        uint256 timestamp,
+        uint8 statusCode
+    ) internal requireIsOperational {
+        bytes32 key = keccak256(abi.encodePacked(flight, airline));
+        require(flights[key].isRegistered, "Flight is not registered.");
+
+        flights[key].updatedTimestamp = timestamp;
+        flights[key].statusCode = statusCode;
+
+        if (statusCode == STATUS_CODE_LATE_AIRLINE) {
+            flightSuretyData.creditInsurees(flight);
+        }
     }
 
 
@@ -189,7 +194,7 @@ contract FlightSuretyApp {
                             string memory flight,
                             uint256 timestamp                            
                         )
-                        external
+                        external requireIsOperational
     {
         uint8 index = getRandomIndex(msg.sender);
 
@@ -201,6 +206,11 @@ contract FlightSuretyApp {
 
         emit OracleRequest(index, airline, flight, timestamp);
     } 
+
+    function viewFlightStatus(string memory flight, address airline) external view requireIsOperational returns(uint8) {
+        bytes32 key = keccak256(abi.encodePacked(flight, airline));
+        return flights[key].statusCode;
+    }
 
 
 // region ORACLE MANAGEMENT
