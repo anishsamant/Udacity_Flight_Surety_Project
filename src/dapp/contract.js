@@ -253,7 +253,7 @@ export default class Contract {
             payload.passenger = accts[0];
         });
         self.flightSuretyData.methods.
-        pay(payload.passenger).send({ from: payload.passenger, gas: 5000000, gasPrice: 200000000}, (error, result) => {
+        pay(payload.flight).send({ from: payload.passenger, gas: 5000000, gasPrice: 200000000}, (error, result) => {
             if (error) {
                 console.log(error);
                 callback(error, payload);

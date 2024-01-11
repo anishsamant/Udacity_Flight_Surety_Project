@@ -196,6 +196,7 @@ contract FlightSuretyApp {
                         )
                         external requireIsOperational
     {
+        require(flightSuretyData.getFlightExistsStatus(flight), "FLight does not exist");
         uint8 index = getRandomIndex(msg.sender);
 
         // Generate a unique key for storing the request

@@ -207,7 +207,6 @@ contract FlightSuretyData {
     function pay(string memory flightNumber) external requireIsOperational {
         require(msg.sender == tx.origin, "Contracts cannot call this function.");
         bytes32 key = keccak256(abi.encodePacked(flightNumber, msg.sender));
-
         require(passengers[key].credit > 0, "No credit to be withdrawn");
         uint credit = passengers[key].credit;
         require(address(this).balance > credit, "The contract does not have enough funds to pay the credit");
@@ -298,6 +297,10 @@ contract FlightSuretyData {
 
     function setFlightExistsStatus(string memory flightNumber) public {
         flightExists[flightNumber] = true;
+    }
+
+    function getFlightExistsStatus(string memory flightNumber) public view returns (bool) {
+        return flightExists[flightNumber];
     }
 }
 

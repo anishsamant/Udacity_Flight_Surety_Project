@@ -146,17 +146,22 @@ import './flightsurety.css';
 
             if (flight != "" && airlineAddress != "") {
                 contract.fetchFlightStatus(airlineAddress, flight, (error, result) => {
-                    display('', 'Trigger oracles', [ { label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + getTimeFromTimestamp(result.timestamp)} ]);
-                    let newTime = result.timestamp;
-                    displaySpinner();
-                    setTimeout(() => {
-                        contract.viewFlightStatus(airlineAddress, flight, (error, result) => {
-                            if (!error) {
-                                changeFlightStatus(flight, result, newTime);
-                            }
-                        });
-                        hideSpinner();
-                    }, 2000);
+                    if (!error) {
+                        display('', 'Trigger oracles', [ { label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + getTimeFromTimestamp(result.timestamp)} ]);
+                        let newTime = result.timestamp;
+                        displaySpinner();
+                        setTimeout(() => {
+                            contract.viewFlightStatus(airlineAddress, flight, (error, result) => {
+                                if (!error) {
+                                    alert(`Status Returned: ${returnStatus(result)}`);
+                                    changeFlightStatus(flight, result, newTime);
+                                }
+                            });
+                            hideSpinner();
+                        }, 2000);
+                    } else {
+                        alert(error);
+                    }
                 });
             } else {
                 handleEmptyField();
@@ -171,6 +176,7 @@ import './flightsurety.css';
         const response = await fetch(`http://localhost:3000/api/status/${buttonValue}`);
         const myJson = await response.json();
         console.log(myJson);
+        alert("Default Status changed to " + myJson.message);
         display('', 'Default flights status change submited to server.', [ { label: 'Server response: ', value: myJson.message} ]);
     })
     
@@ -225,6 +231,23 @@ function displaySpinner() {
 function hideSpinner() {
     document.getElementById("oracles-spinner").hidden = true;
     document.getElementById("submit-oracle").disabled = false;
+}
+
+function returnStatus(status) {
+    switch(status) {
+        case '10':
+            return "ON TIME";
+        case '20':
+            return "LATE AIRLINE";
+        case '30':
+            return "LATE WEATHER";
+        case '40':
+            return "LATE TECHNICAL";
+        case '50':
+            return "LATE OTHER";
+        default:
+            return "UNKNOWN";
+    }
 }
 
 function changeFlightStatus(flight, status, newTime) {
