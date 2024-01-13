@@ -22,7 +22,8 @@ This project is from the Udacity Blockchain Developer Nanodegree - Project: Flig
 6. Test the contract <br>
 `$ truffle test ./test/flightSurety.js` <br>
 `$ truffle test ./test/oracles.js` <br>
-![truffle_test](https://github.com/anishsamant/Udacity_Ethereum_DAPP_SCM_Project/assets/21247634/4b31cb19-c675-4072-ae7e-b3a09cdb3eea)
+![flightSuretyTest](https://github.com/anishsamant/Udacity_Flight_Surety_Project/assets/21247634/cf425983-36b6-478a-b5ac-12665cb4a8f4)
+
 
 7. In a separate terminal window, launch the DApp <br>
 `$ npm run dapp`
