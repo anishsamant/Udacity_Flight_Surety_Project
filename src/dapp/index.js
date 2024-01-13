@@ -15,6 +15,20 @@ import './flightsurety.css';
             display('Operational Status', 'Check if contract is operational', [ { label: 'Operational Status', error: error, value: result} ]);
         });
 
+        contract.fetchFlights((error, result) => {
+            console.log(error,result);
+            if(error){
+                alert(error);
+                console.log(error);
+            } else {
+                if (result.length) {
+                    for (let i = 0; i < result.length; i++) {
+                        flightDisplay(result[i].airlineName, result[i].flightNumber, result[i].destination, result[i].updatedTimestamp, result[i].statusCode);
+                    }
+                }
+            }
+        });
+
         DOM.elid('fund').addEventListener('click', async() => {
             let funds = DOM.elid('funds').value;
             if (funds != "") {
@@ -77,7 +91,7 @@ import './flightsurety.css';
                         console.log(error);
                     } else if (result.message != null) {
                         alert(result.message);
-                        flightDisplay(result.airlineName, flight, destination, result.timestamp);
+                        flightDisplay(result.airlineName, flight, destination, result.timestamp, "10");
                     }
                 });
             } else {
@@ -173,11 +187,16 @@ import './flightsurety.css';
     DOM.elid('statusButton').addEventListener('click', async(e) => {
         e.preventDefault();
         let buttonValue = e.target.value;
-        const response = await fetch(`http://localhost:3000/api/status/${buttonValue}`);
-        const myJson = await response.json();
-        console.log(myJson);
-        alert("Default Status changed to " + myJson.message);
-        display('', 'Default flights status change submited to server.', [ { label: 'Server response: ', value: myJson.message} ]);
+        try {
+            const response = await fetch(`http://localhost:3000/api/status/${buttonValue}`);
+            const myJson = await response.json();
+            console.log(myJson);
+            alert("Default Status changed to " + myJson.message);
+            display('', 'Default flights status change submited to server.', [ { label: 'Server response: ', value: myJson.message} ]);
+        } catch(error) {
+            alert(error + ": Restart server");
+        }
+        
     })
     
 
@@ -199,7 +218,7 @@ function display(title, description, results) {
 }
 
 let flightCount = 0;
-function flightDisplay(airlineName, flight, destination, time) {
+function flightDisplay(airlineName, flight, destination, time, statusCode) {
     var table = DOM.elid("flights-display");
     table.style.display = 'block';
 
@@ -219,8 +238,8 @@ function flightDisplay(airlineName, flight, destination, time) {
     cell2.innerHTML = "<b>" + flight + "</b>";
     cell3.innerHTML = destination.toUpperCase();
     cell4.innerHTML = date.getHours()+":"+date.getMinutes();
-    cell5.innerHTML = "ON TIME";
-    cell5.style="color:green";
+    cell5.innerHTML = returnStatus(statusCode);
+    changeFlightStatus(flight, statusCode, time);
 }
 
 function displaySpinner() {

@@ -43,14 +43,29 @@ export default class Contract {
         });
     }
 
-    isOperational(callback) {
-       let self = this;
-       self.flightSuretyApp.methods
+    async isOperational(callback) {
+        let self = this;
+        self.flightSuretyApp.methods
             .isOperational()
             .call({ from: self.owner}, callback);
     }
 
-    fetchFlightStatus(airline, flight, callback) {
+    async fetchFlights(callback) {
+        let self = this;
+        let _gasPrice = await self.getMaxGasPrice();
+        self.flightSuretyApp.methods
+            .getFlights()
+            .call({ from: self.owner, gas: 5000000, gasPrice: _gasPrice}, (error, result) => {
+                if (error) {
+                    console.log(error);
+                } else {
+                    console.log(result);
+                } 
+                callback(error, result);
+            });
+    }
+
+    async fetchFlightStatus(airline, flight, callback) {
         let self = this;
         let payload = {
             airline: airline,
@@ -64,7 +79,7 @@ export default class Contract {
             });
     }
 
-    viewFlightStatus(airline, flight, callback) {
+    async viewFlightStatus(airline, flight, callback) {
         let self = this;
         let payload = {
             airline: airline,
@@ -114,11 +129,12 @@ export default class Contract {
         await this.web3.eth.getAccounts((error, accts) => {
             payload.sender = accts[0];
         });
+        let _gasPrice = await self.getMaxGasPrice();
         self.flightSuretyApp.methods
             .registerAirline(payload.airlineAddress, payload.name)
             .send({ from: payload.sender,
                 gas: 5000000,
-                gasPrice: 200000000
+                gasPrice: _gasPrice
             }, (error, result) => {
                 if (error) {
                     console.log(error);
@@ -141,9 +157,11 @@ export default class Contract {
         await this.web3.eth.getAccounts((error, accts) => {
             payload.voter = accts[0];
         });
+        let _gasPrice = await self.getMaxGasPrice();
+
         self.flightSuretyApp.methods
             .voteAirline(payload.airlineAddress)
-            .send({ from: payload.voter, gas: 5000000, gasPrice: 200000000}, (error, result) => {
+            .send({ from: payload.voter, gas: 5000000, gasPrice: _gasPrice}, (error, result) => {
                 if (error) {
                     console.log(error);
                     callback(error, payload);
@@ -168,9 +186,10 @@ export default class Contract {
         await this.web3.eth.getAccounts((error, accts) => {
             payload.airline = accts[0];
         });
+        let _gasPrice = await self.getMaxGasPrice();
         self.flightSuretyApp.methods
             .registerFlight(payload.flight, payload.destination, payload.timestamp)
-            .send({ from: payload.airline, gas: 5000000, gasPrice: 200000000}, (error, result) => {
+            .send({ from: payload.airline, gas: 5000000, gasPrice: _gasPrice}, (error, result) => {
                 if (error) {
                     console.log(error);
                     callback(error, payload);
@@ -200,11 +219,12 @@ export default class Contract {
         await this.web3.eth.getAccounts((error, accts) => {
             payload.passenger = accts[0];
         });
+        let _gasPrice = await self.getMaxGasPrice();
         self.flightSuretyData.methods
             .buy(flight)
             .send({ from: payload.passenger, value: priceInWei,
                 gas: 5000000,
-                gasPrice: 200000000
+                gasPrice: _gasPrice
             }, (error, result) => {
                 if (error) {
                     console.log(error);
@@ -228,8 +248,9 @@ export default class Contract {
         await this.web3.eth.getAccounts((error, accts) => {
             payload.passenger = accts[0];
         });
+        let _gasPrice = await self.getMaxGasPrice();
         self.flightSuretyData.methods.
-        getCreditToPay(payload.flight).call({ from: payload.passenger, gas: 5000000, gasPrice: 200000000}, (error, result) => {
+        getCreditToPay(payload.flight).call({ from: payload.passenger, gas: 5000000, gasPrice: _gasPrice}, (error, result) => {
             if (error) {
                 console.log(error);
                 callback(error, payload);
@@ -252,8 +273,9 @@ export default class Contract {
         await this.web3.eth.getAccounts((error, accts) => {
             payload.passenger = accts[0];
         });
+        let _gasPrice = await self.getMaxGasPrice();
         self.flightSuretyData.methods.
-        pay(payload.flight).send({ from: payload.passenger, gas: 5000000, gasPrice: 200000000}, (error, result) => {
+        pay(payload.flight).send({ from: payload.passenger, gas: 5000000, gasPrice: _gasPrice}, (error, result) => {
             if (error) {
                 console.log(error);
                 callback(error, payload);
@@ -263,6 +285,12 @@ export default class Contract {
                 callback(error, payload);
             }
         });
+    }
+
+    async getMaxGasPrice() {
+        let self = this;
+        const block = await this.web3.eth.getBlock('latest');
+        return Math.ceil(block.baseFeePerGas);
     }
 
 }

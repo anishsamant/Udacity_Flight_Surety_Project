@@ -36,8 +36,11 @@ contract FlightSuretyApp {
         address airline;
         string flightNumber;
         string destination;
+        string airlineName;
     }
     mapping(bytes32 => Flight) private flights;
+
+    bytes32[] private flightsInfo;
 
     FlightSuretyData flightSuretyData;
 
@@ -154,13 +157,15 @@ contract FlightSuretyApp {
 
         flights[key] = Flight({
             isRegistered: true,
-            statusCode: STATUS_CODE_UNKNOWN,
+            statusCode: STATUS_CODE_ON_TIME,
             updatedTimestamp: timestamp,
             airline: msg.sender,
             flightNumber: flightNumber,
-            destination: destination
+            destination: destination,
+            airlineName: flightSuretyData.getAirlineName(msg.sender)
         });
         flightSuretyData.setFlightExistsStatus(flightNumber);
+        flightsInfo.push(key);
 
         emit FlightRegistered(flightNumber, msg.sender);
     }
@@ -382,6 +387,21 @@ contract FlightSuretyApp {
 
         return random;
     }
+
+    function getFlights() public view returns (Flight[] memory) {
+        uint len = flightsInfo.length;
+        Flight[] memory allFlights = new Flight[](len);
+
+        for (uint256 i = 0; i < len; i++) {
+            bytes32 key = flightsInfo[i];
+            allFlights[i] = flights[key];
+        }
+
+        return allFlights;
+        // return flightsInfo;
+    
+    }
+
 
 // endregion
 
