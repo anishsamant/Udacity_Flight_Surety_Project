@@ -124,12 +124,12 @@ contract FlightSuretyData {
         operational = mode;
     }
 
-    function authorizeCallers(address _address) external requireContractOwner {
+    function authorizeCallers(address _address) external requireContractOwner requireIsOperational {
         authorizedCallers[_address] = 1;
         emit AuthorizedContract(_address);
     }
 
-    function deAuthorizeContract(address _address) external requireContractOwner {
+    function deAuthorizeContract(address _address) external requireContractOwner requireIsOperational {
         delete authorizedCallers[_address];
         emit DeAuthorizedContract(_address);
     }
@@ -247,24 +247,24 @@ contract FlightSuretyData {
         fund();
     }
 
-    function isAirlineRegistered(address _airlineAddress) public view returns (bool) {
+    function isAirlineRegistered(address _airlineAddress) public view requireIsOperational returns (bool) {
         return airlines[_airlineAddress].isRegistered;
     }
 
-    function getAirlineFunding(address _airlineAddress) public view returns (uint) {
+    function getAirlineFunding(address _airlineAddress) public view requireIsOperational returns (uint) {
         return airlines[_airlineAddress].funding;
     }
 
-    function setAirlineFunding(address _airlineAddress, uint amount) public {
+    function setAirlineFunding(address _airlineAddress, uint amount) public requireIsOperational {
         airlines[_airlineAddress].funding += amount;
     }
 
 
-    function getAirlinesCount() public view returns (uint) {
+    function getAirlinesCount() public view requireIsOperational returns (uint) {
         return airlinesCount;
     }
 
-    function getVotes(address _airlineAddress) public view returns (uint) {
+    function getVotes(address _airlineAddress) public view requireIsOperational returns (uint) {
         return votes[_airlineAddress];
     }
 
@@ -272,35 +272,39 @@ contract FlightSuretyData {
         votes[_airlineAddress] += 1;
     }
 
-    function getAirlineVoters(address _airlineAddress) public view returns (address[] memory) {
+    function getAirlineVoters(address _airlineAddress) public view requireIsOperational returns (address[] memory) {
         return airlineVoters[_airlineAddress];
     }
 
-    function setAirlineVoters(address _airlineAddress,address voter) public {
+    function setAirlineVoters(address _airlineAddress,address voter) public requireIsOperational {
         airlineVoters[_airlineAddress].push(voter);
     }
     
-    function getBalance() public view returns (uint) {
+    function getBalance() public view requireIsOperational returns (uint) {
         return address(this).balance;
     }
 
-    function getAirlineName(address _airlineAddress) public view returns (string memory) {
+    function getAirlineName(address _airlineAddress) public view requireIsOperational returns (string memory) {
         return airlines[_airlineAddress].name;
     }
 
-    function getAirlineInfo(address _airlineAddress) public view returns (string memory name, bool isRegistered, uint funding) {
+    function getAirlineInfo(address _airlineAddress) public view requireIsOperational returns (string memory name, bool isRegistered, uint funding) {
         Airline memory airline = airlines[_airlineAddress];
         name = airline.name;
         isRegistered = airline.isRegistered;
         funding = airline.funding;
     }
 
-    function setFlightExistsStatus(string memory flightNumber) public {
+    function setFlightExistsStatus(string memory flightNumber) public requireIsOperational {
         flightExists[flightNumber] = true;
     }
 
-    function getFlightExistsStatus(string memory flightNumber) public view returns (bool) {
+    function getFlightExistsStatus(string memory flightNumber) public view requireIsOperational returns (bool) {
         return flightExists[flightNumber];
+    }
+
+    function getPassengerAddresses() public view requireIsOperational() returns (address[] memory) {
+        return passengerAddresses;
     }
 }
 
