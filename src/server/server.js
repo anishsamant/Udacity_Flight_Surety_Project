@@ -90,7 +90,9 @@ flightSuretyApp.events.OracleRequest({
 		let oracle = oracleAccounts[idx];
 		if(indexes[0] == index || indexes[1] == index || indexes[2] == index) {
 			console.log(`Oracle: ${oracle} triggered. Indexes: ${indexes}.`);
-			submitOracleResponse(oracle, index, event.returnValues.airline, event.returnValues.flight, event.returnValues.timestamp);
+			let statusCode = generateRandomStatusCode();
+			defaultStatus = statusCode;
+			submitOracleResponse(oracle, index, event.returnValues.airline, event.returnValues.flight, event.returnValues.timestamp, statusCode);
 		}
 		idx++;
 	});
@@ -109,16 +111,16 @@ flightSuretyData.events.allEvents({
   	}
 });
 
-function submitOracleResponse (oracle, index, airline, flight, timestamp) {
+function submitOracleResponse (oracle, index, airline, flight, timestamp, statusCode) {
 	let payload = {
 		index: index,
 		airline: airline,
 		flight: flight,
 		timestamp: timestamp,
-		statusCode: defaultStatus
+		statusCode: statusCode
 	} 
 	flightSuretyApp.methods
-	.submitOracleResponse(index, airline, flight, timestamp, defaultStatus)
+	.submitOracleResponse(index, airline, flight, timestamp, statusCode)
 	.send({ from: oracle,
 		gas: 500000,
 		gasPrice: 200000000}, (error, result) => {
@@ -137,6 +139,11 @@ function submitOracleResponse (oracle, index, airline, flight, timestamp) {
 			}
 		});
 	}
+}
+
+function generateRandomStatusCode() {
+	let statusCodeList = [0, 10, 20, 30, 40, 50];
+	return Math.floor(Math.random * statusCodeList.length);
 }
 
 function getOracleAccounts() {
